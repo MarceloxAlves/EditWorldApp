@@ -55,7 +55,6 @@ public class LoginActivity extends AppCompatActivity {
     @Override
     protected void onStart() {
         super.onStart();
-        mAuth.addAuthStateListener(mAuthListener);
     }
 
     @Override
@@ -72,38 +71,12 @@ public class LoginActivity extends AppCompatActivity {
 
 
     private void initFirebase() {
-        //Khoi tao thanh phan de dang nhap, dang ky
-        mAuth = FirebaseAuth.getInstance();
-        authUtils = new AuthUtils();
-        mAuthListener = new FirebaseAuth.AuthStateListener() {
-            @Override
-            public void onAuthStateChanged(@NonNull FirebaseAuth firebaseAuth) {
-                user = firebaseAuth.getCurrentUser();
-                if (user != null) {
-                    // User is signed in
-                    StaticConfig.UID = user.getUid();
-                    Log.d(TAG, "onAuthStateChanged:signed_in:" + user.getUid());
-                    if (firstTimeAccess) {
-                        startActivity(new Intent(LoginActivity.this, MainActivity.class));
-                        LoginActivity.this.finish();
-                    }
-                } else {
-                    Log.d(TAG, "onAuthStateChanged:signed_out");
-                }
-                firstTimeAccess = false;
-            }
-        };
 
-        //Khoi tao dialog waiting khi dang nhap
-        waitingDialog = new LovelyProgressDialog(this).setCancelable(false);
     }
 
     @Override
     protected void onStop() {
         super.onStop();
-        if (mAuthListener != null) {
-            mAuth.removeAuthStateListener(mAuthListener);
-        }
     }
 
     @SuppressLint("RestrictedApi")
@@ -174,50 +147,7 @@ public class LoginActivity extends AppCompatActivity {
                     .setTitle("Registering....")
                     .setTopColorRes(R.color.colorPrimary)
                     .show();
-            mAuth.createUserWithEmailAndPassword(email, password)
-                    .addOnCompleteListener(LoginActivity.this, new OnCompleteListener<AuthResult>() {
-                        @Override
-                        public void onComplete(@NonNull Task<AuthResult> task) {
-                            Log.d(TAG, "createUserWithEmail:onComplete:" + task.isSuccessful());
-                            waitingDialog.dismiss();
-                            // If sign in fails, display a message to the user. If sign in succeeds
-                            // the auth state listener will be notified and logic to handle the
-                            // signed in user can be handled in the listener.
-                            if (!task.isSuccessful()) {
-                                new LovelyInfoDialog(LoginActivity.this) {
-                                    @Override
-                                    public LovelyInfoDialog setConfirmButtonText(String text) {
-                                        findView(com.yarolegovich.lovelydialog.R.id.ld_btn_confirm).setOnClickListener(new View.OnClickListener() {
-                                            @Override
-                                            public void onClick(View view) {
-                                                dismiss();
-                                            }
-                                        });
-                                        return super.setConfirmButtonText(text);
-                                    }
-                                }
-                                        .setTopColorRes(R.color.colorAccent)
-                                        .setIcon(R.drawable.ic_add_friend)
-                                        .setTitle("Register false")
-                                        .setMessage("Email exist or weak password!")
-                                        .setConfirmButtonText("ok")
-                                        .setCancelable(false)
-                                        .show();
-                            } else {
-                                initNewUserInfo();
-                                Toast.makeText(LoginActivity.this, "Register and Login success", Toast.LENGTH_SHORT).show();
-                                startActivity(new Intent(LoginActivity.this, MainActivity.class));
-                                LoginActivity.this.finish();
-                            }
-                        }
-                    })
-                    .addOnFailureListener(new OnFailureListener() {
-                        @Override
-                        public void onFailure(@NonNull Exception e) {
-                            waitingDialog.dismiss();
-                        }
-                    })
-            ;
+
         }
 
 
@@ -232,49 +162,7 @@ public class LoginActivity extends AppCompatActivity {
                     .setTitle("Login....")
                     .setTopColorRes(R.color.colorPrimary)
                     .show();
-            mAuth.signInWithEmailAndPassword(email, password)
-                    .addOnCompleteListener(LoginActivity.this, new OnCompleteListener<AuthResult>() {
-                        @Override
-                        public void onComplete(@NonNull Task<AuthResult> task) {
-                            Log.d(TAG, "signInWithEmail:onComplete:" + task.isSuccessful());
-                            // If sign in fails, display a message to the user. If sign in succeeds
-                            // the auth state listener will be notified and logic to handle the
-                            // signed in user can be handled in the listener.
-                            waitingDialog.dismiss();
-                            if (!task.isSuccessful()) {
-                                Log.w(TAG, "signInWithEmail:failed", task.getException());
-                                new LovelyInfoDialog(LoginActivity.this) {
-                                    @Override
-                                    public LovelyInfoDialog setConfirmButtonText(String text) {
-                                        findView(com.yarolegovich.lovelydialog.R.id.ld_btn_confirm).setOnClickListener(new View.OnClickListener() {
-                                            @Override
-                                            public void onClick(View view) {
-                                                dismiss();
-                                            }
-                                        });
-                                        return super.setConfirmButtonText(text);
-                                    }
-                                }
-                                        .setTopColorRes(R.color.colorAccent)
-                                        .setIcon(R.drawable.ic_person_low)
-                                        .setTitle("Login false")
-                                        .setMessage("Email not exist or wrong password!")
-                                        .setCancelable(false)
-                                        .setConfirmButtonText("Ok")
-                                        .show();
-                            } else {
-                                saveUserInfo();
-                                startActivity(new Intent(LoginActivity.this, MainActivity.class));
-                                LoginActivity.this.finish();
-                            }
-                        }
-                    })
-                    .addOnFailureListener(new OnFailureListener() {
-                        @Override
-                        public void onFailure(@NonNull Exception e) {
-                            waitingDialog.dismiss();
-                        }
-                    });
+
         }
 
         /**
@@ -283,87 +171,20 @@ public class LoginActivity extends AppCompatActivity {
          * @param email
          */
         void resetPassword(final String email) {
-            mAuth.sendPasswordResetEmail(email)
-                    .addOnCompleteListener(new OnCompleteListener<Void>() {
-                        @Override
-                        public void onComplete(@NonNull Task<Void> task) {
-                            new LovelyInfoDialog(LoginActivity.this) {
-                                @Override
-                                public LovelyInfoDialog setConfirmButtonText(String text) {
-                                    findView(com.yarolegovich.lovelydialog.R.id.ld_btn_confirm).setOnClickListener(new View.OnClickListener() {
-                                        @Override
-                                        public void onClick(View view) {
-                                            dismiss();
-                                        }
-                                    });
-                                    return super.setConfirmButtonText(text);
-                                }
-                            }
-                                    .setTopColorRes(R.color.colorPrimary)
-                                    .setIcon(R.drawable.ic_pass_reset)
-                                    .setTitle("Password Recovery")
-                                    .setMessage("Sent email to " + email)
-                                    .setConfirmButtonText("Ok")
-                                    .show();
-                        }
-                    })
-            .addOnFailureListener(new OnFailureListener() {
-                @Override
-                public void onFailure(@NonNull Exception e) {
-                    new LovelyInfoDialog(LoginActivity.this) {
-                        @Override
-                        public LovelyInfoDialog setConfirmButtonText(String text) {
-                            findView(com.yarolegovich.lovelydialog.R.id.ld_btn_confirm).setOnClickListener(new View.OnClickListener() {
-                                @Override
-                                public void onClick(View view) {
-                                    dismiss();
-                                }
-                            });
-                            return super.setConfirmButtonText(text);
-                        }
-                    }
-                            .setTopColorRes(R.color.colorAccent)
-                            .setIcon(R.drawable.ic_pass_reset)
-                            .setTitle("False")
-                            .setMessage("False to sent email to " + email)
-                            .setConfirmButtonText("Ok")
-                            .show();
-                }
-            });
+
         }
 
         /**
          *
          */
         void saveUserInfo() {
-            FirebaseDatabase.getInstance().getReference().child("user/" + StaticConfig.UID).addListenerForSingleValueEvent(new ValueEventListener() {
-                @Override
-                public void onDataChange(DataSnapshot dataSnapshot) {
-                    waitingDialog.dismiss();
-                    HashMap hashUser = (HashMap) dataSnapshot.getValue();
-                    User userInfo = new User();
-                    userInfo.name = (String) hashUser.get("name");
-                    userInfo.email = (String) hashUser.get("email");
-                    userInfo.avata = (String) hashUser.get("avata");
-                    SharedPreferenceHelper.getInstance(LoginActivity.this).saveUserInfo(userInfo);
-                }
-
-                @Override
-                public void onCancelled(DatabaseError databaseError) {
-
-                }
-            });
         }
 
         /**
          *
          */
         void initNewUserInfo() {
-            User newUser = new User();
-            newUser.email = user.getEmail();
-            newUser.name = user.getEmail().substring(0, user.getEmail().indexOf("@"));
-            newUser.avata = StaticConfig.STR_DEFAULT_BASE64;
-           FirebaseDatabase.getInstance().getReference().child("user/" + user.getUid()).setValue(newUser);
+
         }
     }
 }
