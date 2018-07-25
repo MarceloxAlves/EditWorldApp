@@ -73,7 +73,7 @@ public class LoginActivity extends AppCompatActivity {
 
     private void initFirebase() {
         //Khoi tao thanh phan de dang nhap, dang ky
-        //mAuth = FirebaseAuth.getInstance();
+        mAuth = FirebaseAuth.getInstance();
         authUtils = new AuthUtils();
         mAuthListener = new FirebaseAuth.AuthStateListener() {
             @Override

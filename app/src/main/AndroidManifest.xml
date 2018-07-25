@@ -37,9 +37,6 @@
             android:parentActivityName="labiras.editworld.MainActivity"/>
         <activity android:name="labiras.editworld.ui.AddGroupActivity"
             android:theme="@style/MyThemeNoActionbar"/>
-        <service android:name="labiras.editworld.service.FriendChatService"
-            android:exported="false"
-            android:persistent= "true" />
     </application>
 
 </manifest>
