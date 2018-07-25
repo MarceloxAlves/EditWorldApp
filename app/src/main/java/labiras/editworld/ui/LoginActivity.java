@@ -107,7 +107,7 @@ public class LoginActivity extends AppCompatActivity {
         if (validate(username, password)) {
            // authUtils.signIn(username, password);
         } else {
-            Toast.makeText(this, "Invalid email or empty password", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Email inválido ou senha vazia", Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -144,7 +144,7 @@ public class LoginActivity extends AppCompatActivity {
          */
         void createUser(String email, String password) {
             waitingDialog.setIcon(R.drawable.ic_add_friend)
-                    .setTitle("Registering....")
+                    .setTitle("Registrando....")
                     .setTopColorRes(R.color.colorPrimary)
                     .show();
 
