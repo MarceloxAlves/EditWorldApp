@@ -62,16 +62,22 @@ public class LoginActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
         setContentView(R.layout.activity_login);
+
+        setupViews();
+        initFirebase();
+    }
+
+    private void setupViews() {
         fab = (FloatingActionButton) findViewById(R.id.fab);
         editTextUsername = (EditText) findViewById(R.id.et_username);
         editTextPassword = (EditText) findViewById(R.id.et_password);
         firstTimeAccess = true;
-       initFirebase();
     }
 
 
     private void initFirebase() {
-
+        mAuth = FirebaseAuth.getInstance();
+        authUtils = new AuthUtils();
     }
 
     @Override
@@ -105,7 +111,7 @@ public class LoginActivity extends AppCompatActivity {
         String username = editTextUsername.getText().toString();
         String password = editTextPassword.getText().toString();
         if (validate(username, password)) {
-           // authUtils.signIn(username, password);
+            authUtils.signIn(username, password);
         } else {
             Toast.makeText(this, "Email inválido ou senha vazia", Toast.LENGTH_SHORT).show();
         }
@@ -158,10 +164,22 @@ public class LoginActivity extends AppCompatActivity {
          * @param password
          */
         void signIn(String email, String password) {
-            waitingDialog.setIcon(R.drawable.ic_person_low)
+            /*waitingDialog.setIcon(R.drawable.ic_person_low)
                     .setTitle("Login....")
                     .setTopColorRes(R.color.colorPrimary)
-                    .show();
+                    .show();*/
+            mAuth.signInWithEmailAndPassword(email, password).addOnCompleteListener(LoginActivity.this,
+                    new OnCompleteListener<AuthResult>() {
+                        @Override
+                        public void onComplete(@NonNull Task<AuthResult> task) {
+                            if (task.isSuccessful()) {
+                                startActivity(new Intent(LoginActivity.this, MainActivity.class));
+                                Toast.makeText(LoginActivity.this, "Logado..", Toast.LENGTH_LONG).show();
+                            } else {
+                                Toast.makeText(LoginActivity.this, "deu ruim", Toast.LENGTH_SHORT).show();
+                            }
+                        }
+                    });
 
         }
 
