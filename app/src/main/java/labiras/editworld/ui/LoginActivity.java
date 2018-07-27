@@ -9,42 +9,34 @@ import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AppCompatActivity;
-import android.util.Log;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.Toast;
 
 import com.google.android.gms.tasks.OnCompleteListener;
-import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException;
+import com.google.firebase.auth.FirebaseAuthInvalidUserException;
 import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.database.DataSnapshot;
-import com.google.firebase.database.DatabaseError;
-import com.google.firebase.database.FirebaseDatabase;
-import com.google.firebase.database.ValueEventListener;
-import com.yarolegovich.lovelydialog.LovelyInfoDialog;
 import com.yarolegovich.lovelydialog.LovelyProgressDialog;
 
-import java.util.HashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import labiras.editworld.MainActivity;
 import labiras.editworld.R;
-import labiras.editworld.data.SharedPreferenceHelper;
 import labiras.editworld.data.StaticConfig;
-import labiras.editworld.model.User;
 
 
 public class LoginActivity extends AppCompatActivity {
+
     private static String TAG = "LoginActivity";
+    private final Pattern VALID_EMAIL_ADDRESS_REGEX = Pattern.compile(
+            "^[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,6}$", Pattern.CASE_INSENSITIVE);
     FloatingActionButton fab;
-    private final Pattern VALID_EMAIL_ADDRESS_REGEX =
-            Pattern.compile("^[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,6}$", Pattern.CASE_INSENSITIVE);
     private EditText editTextUsername, editTextPassword;
-    private LovelyProgressDialog waitingDialog;
 
     private AuthUtils authUtils;
     private FirebaseAuth mAuth;
@@ -63,21 +55,11 @@ public class LoginActivity extends AppCompatActivity {
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
         setContentView(R.layout.activity_login);
 
-        setupViews();
-        initFirebase();
-    }
+        if (FirebaseAuth.getInstance().getCurrentUser() != null) {
+            initMainActivity();
+        }
 
-    private void setupViews() {
-        fab = (FloatingActionButton) findViewById(R.id.fab);
-        editTextUsername = (EditText) findViewById(R.id.et_username);
-        editTextPassword = (EditText) findViewById(R.id.et_password);
-        firstTimeAccess = true;
-    }
-
-
-    private void initFirebase() {
-        mAuth = FirebaseAuth.getInstance();
-        authUtils = new AuthUtils();
+        initAttributes();
     }
 
     @Override
@@ -107,6 +89,13 @@ public class LoginActivity extends AppCompatActivity {
         }
     }
 
+    @Override
+    public void onBackPressed() {
+        super.onBackPressed();
+        setResult(RESULT_CANCELED, null);
+        finish();
+    }
+
     public void clickLogin(View view) {
         String username = editTextUsername.getText().toString();
         String password = editTextPassword.getText().toString();
@@ -117,18 +106,6 @@ public class LoginActivity extends AppCompatActivity {
         }
     }
 
-    @Override
-    public void onBackPressed() {
-        super.onBackPressed();
-        setResult(RESULT_CANCELED, null);
-        finish();
-    }
-
-    private boolean validate(String emailStr, String password) {
-        Matcher matcher = VALID_EMAIL_ADDRESS_REGEX.matcher(emailStr);
-        return (password.length() > 0 || password.equals(";")) && matcher.find();
-    }
-
     public void clickResetPassword(View view) {
         String username = editTextUsername.getText().toString();
         if (validate(username, ";")) {
@@ -136,6 +113,26 @@ public class LoginActivity extends AppCompatActivity {
         } else {
             Toast.makeText(this, "Invalid email", Toast.LENGTH_SHORT).show();
         }
+    }
+
+    private void initAttributes() {
+        fab = (FloatingActionButton) findViewById(R.id.fab);
+        editTextUsername = (EditText) findViewById(R.id.et_username);
+        editTextPassword = (EditText) findViewById(R.id.et_password);
+        mAuth = FirebaseAuth.getInstance();
+        user = mAuth.getCurrentUser();
+        authUtils = new AuthUtils();
+        firstTimeAccess = true;
+    }
+
+    protected void initMainActivity() {
+        startActivity(new Intent(this, MainActivity.class));
+        finish();
+    }
+
+    private boolean validate(String emailStr, String password) {
+        Matcher matcher = VALID_EMAIL_ADDRESS_REGEX.matcher(emailStr);
+        return (password.length() > 0 || password.equals(";")) && matcher.find();
     }
 
     /**
@@ -149,11 +146,11 @@ public class LoginActivity extends AppCompatActivity {
          * @param password
          */
         void createUser(String email, String password) {
-            waitingDialog.setIcon(R.drawable.ic_add_friend)
+            new LovelyProgressDialog(LoginActivity.this)
+                    .setIcon(R.drawable.ic_add_friend)
                     .setTitle("Registrando....")
                     .setTopColorRes(R.color.colorPrimary)
                     .show();
-
         }
 
 
@@ -164,23 +161,29 @@ public class LoginActivity extends AppCompatActivity {
          * @param password
          */
         void signIn(String email, String password) {
-            /*waitingDialog.setIcon(R.drawable.ic_person_low)
-                    .setTitle("Login....")
-                    .setTopColorRes(R.color.colorPrimary)
-                    .show();*/
-            mAuth.signInWithEmailAndPassword(email, password).addOnCompleteListener(LoginActivity.this,
+            mAuth.signInWithEmailAndPassword(email, password)
+                    .addOnCompleteListener(LoginActivity.this,
                     new OnCompleteListener<AuthResult>() {
                         @Override
                         public void onComplete(@NonNull Task<AuthResult> task) {
                             if (task.isSuccessful()) {
-                                startActivity(new Intent(LoginActivity.this, MainActivity.class));
-                                Toast.makeText(LoginActivity.this, "Logado..", Toast.LENGTH_LONG).show();
+                                new LovelyProgressDialog(LoginActivity.this)
+                                        .setIcon(R.drawable.ic_person_low)
+                                        .setTitle("Login....")
+                                        .setTopColorRes(R.color.colorPrimary)
+                                        .show();
+                                initMainActivity();
                             } else {
-                                Toast.makeText(LoginActivity.this, "deu ruim", Toast.LENGTH_SHORT).show();
+                                if (task.getException() instanceof FirebaseAuthInvalidUserException) {
+                                    Toast.makeText(LoginActivity.this, "Non-existent user", Toast.LENGTH_SHORT).show();
+                                } else if (task.getException() instanceof FirebaseAuthInvalidCredentialsException) {
+                                    Toast.makeText(LoginActivity.this, "Wrong password", Toast.LENGTH_SHORT).show();
+                                } else {
+                                    Toast.makeText(LoginActivity.this, "Login error", Toast.LENGTH_SHORT).show();
+                                }
                             }
                         }
                     });
-
         }
 
         /**
